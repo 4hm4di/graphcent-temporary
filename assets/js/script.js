@@ -230,8 +230,8 @@
       var c = { x: m.ox + CENTROIDS[i][0] * m.s, y: m.oy + CENTROIDS[i][1] * m.s };
 
       var b = Bodies.fromVertices(c.x, c.y, [verts], {
-        friction: 0.55,
-        frictionStatic: 0.9,
+        friction: 0.28,
+        frictionStatic: 0.3,
         frictionAir: reduceMotion ? 0.25 : 0.018,
         restitution: 0.12,
         density: 0.0016,
@@ -445,6 +445,64 @@
   }, { passive: false });
   if (resetBtn) resetBtn.addEventListener('click', reset);
 
+  // ---- tilt: on phones, tipping the device sends loose facets that way ----
+  // The orientation sensor tells us which way is "down" relative to the
+  // screen; its left/right part becomes sideways gravity. Facets still in
+  // the mark are pinned, so only loose ones slide, roll and pile up on the
+  // low side. Works in portrait and landscape, held upright or flat.
+  var tiltBtn = document.getElementById('tiltBtn');
+  var tiltTarget = 0;    // desired sideways gravity
+  var tiltX = 0;         // smoothed value actually applied
+  var tiltOn = false;
+  var lastWakeTilt = 0;
+  var TILT_GAIN = 2.6;   // about 25 degrees gives full sideways pull
+  var TILT_DEAD = 0.07;  // ignore the first ~4 degrees so a resting hand doesn't drift
+
+  function screenAngle() {
+    var a = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle
+          : (typeof window.orientation === 'number' ? window.orientation : 0);
+    return ((a % 360) + 360) % 360;
+  }
+
+  function onOrientation(e) {
+    if (e.beta == null || e.gamma == null) return;
+    var b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180;
+    // world "down" in the device's own axes (x right, y up, portrait)
+    var dx = Math.sin(g) * Math.cos(b);
+    var dy = -Math.sin(b);
+    // ...then in the screen's axes, whichever way the screen is turned
+    var a = screenAngle(), sx;
+    if (a === 90) sx = -dy;
+    else if (a === 270) sx = dy;
+    else if (a === 180) sx = -dx;
+    else sx = dx;
+    sx = Math.abs(sx) < TILT_DEAD ? 0 : sx - (sx > 0 ? TILT_DEAD : -TILT_DEAD);
+    tiltTarget = Math.max(-1.5, Math.min(1.5, sx * TILT_GAIN));
+    if (!tiltOn) {
+      tiltOn = true;
+      if (hint) hint.textContent = 'Drag the logo. Tilt your phone.';
+    }
+  }
+
+  if (!reduceMotion && 'DeviceOrientationEvent' in window) {
+    var needsPermission = typeof DeviceOrientationEvent.requestPermission === 'function';
+    var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (needsPermission) {
+      // iOS only lets a page read tilt after the visitor taps to allow it
+      if (coarse && tiltBtn) {
+        tiltBtn.hidden = false;
+        tiltBtn.addEventListener('click', function () {
+          DeviceOrientationEvent.requestPermission().then(function (state) {
+            if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
+            tiltBtn.hidden = true;
+          }).catch(function () { tiltBtn.hidden = true; });
+        });
+      }
+    } else {
+      window.addEventListener('deviceorientation', onOrientation);
+    }
+  }
+
   // ---- responsive: rebuild the world whenever the layout changes ----
   function relayout() {
     var k = keyOf(measure());
@@ -473,6 +531,17 @@
   function frame(now) {
     var dt = Math.min(now - last, 100);
     last = now;
+
+    if (tiltOn) {
+      tiltX += (tiltTarget - tiltX) * 0.15;
+      engine.gravity.x = tiltX;
+      if (Math.abs(tiltX - lastWakeTilt) > 0.04) {
+        lastWakeTilt = tiltX;
+        for (var w = 0; w < bodies.length; w++) {
+          if (!bodies[w].isStatic) Sleeping.set(bodies[w], false);
+        }
+      }
+    }
 
     if (tweens) {
       stepTweens(now);

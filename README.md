@@ -81,6 +81,15 @@ sides are the walls and its bottom edge is the floor.
   else still scrolls the page normally.
 - The world rebuilds itself whenever the layout changes (rotation, window
   resize, fonts loading), so the floor always matches the section.
+- **Tilt (phones).** Tipping the phone left or right sends the loose
+  pieces sliding and tumbling to the low side, where they heap up like
+  blocks in a tipped box. Pieces still in the logo stay put. It reads the
+  phone's orientation sensor, works in portrait and landscape, and ignores
+  the first few degrees so a resting hand doesn't make pieces drift.
+  Android needs no setup. iPhones require the visitor to allow motion
+  access, so on iPhones a small "Tilt" button appears next to Reset; one
+  tap shows the system prompt, then the button disappears. Desktops never
+  show it. The sensor only works over HTTPS (Netlify serves HTTPS).
 - With reduced motion turned on there is no gravity: you can still move
   pieces, but nothing falls or collapses.
 

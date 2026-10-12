@@ -185,6 +185,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   transition:border-color .28s var(--ease),color .28s var(--ease),background .28s var(--ease);
 }
 .reset svg{width:14px;height:14px;fill:currentColor;flex:none}
+.reset svg.ico-stroke{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rig-actions{display:flex;gap:8px;flex:none}
+.tilt-btn[hidden]{display:none}
 .reset:hover,.reset:focus-visible{border-color:var(--ink);background:var(--ink);color:var(--paper)}
 .reset:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
 
