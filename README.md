@@ -75,8 +75,10 @@ sides are the walls and its bottom edge is the floor.
   piece home along a smooth curve to the exact original mark.
 - Speeds are capped and the walls are thick, so nothing tunnels through the
   floor, gets flung off-screen or causes horizontal scroll.
-- Only the facets themselves capture touch, so on phones you can still
-  scroll the page normally by swiping anywhere else.
+- On phones, a touch that starts on a facet grabs the facet instead of
+  scrolling the page. This is enforced in JavaScript (not just CSS
+  `touch-action`, which iOS Safari ignores on SVG shapes). Swiping anywhere
+  else still scrolls the page normally.
 - The world rebuilds itself whenever the layout changes (rotation, window
   resize, fonts loading), so the floor always matches the section.
 - With reduced motion turned on there is no gravity: you can still move
