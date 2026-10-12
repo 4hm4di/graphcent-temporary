@@ -429,6 +429,20 @@
   window.addEventListener('pointermove', onMove, { passive: true });
   window.addEventListener('pointerup', onUp, { passive: true });
   window.addEventListener('pointercancel', onUp, { passive: true });
+
+  // Phones: a touch that starts on a facet belongs to the facet, not the
+  // page. CSS touch-action alone is not honoured on SVG shapes by every
+  // mobile browser (notably iOS Safari), which let the page scroll and
+  // cancel the drag. So we stop the scroll here, in JS, but only when the
+  // finger lands on a facet; swiping anywhere else still scrolls normally.
+  hero.addEventListener('touchstart', function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.piece')) e.preventDefault();
+  }, { passive: false });
+  // while a facet is held, nothing should scroll or zoom the page
+  window.addEventListener('touchmove', function (e) {
+    if (drag) e.preventDefault();
+  }, { passive: false });
   if (resetBtn) resetBtn.addEventListener('click', reset);
 
   // ---- responsive: rebuild the world whenever the layout changes ----

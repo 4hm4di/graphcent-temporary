@@ -98,6 +98,14 @@ var TARGET = new Date('2026-10-26T00:00:00+01:00').getTime();
 Change that line (and only that line) if the launch date moves. When it
 hits zero, the label switches to "Launching now" and the timer stops.
 
+## Social sharing preview
+
+`og-image.jpg` (1200×630, in the site root) is the card shown when the link
+is shared on WhatsApp, X, LinkedIn, Slack etc. The Open Graph and
+`twitter:card` tags in `index.html` point to it at
+`https://graphcent.com/og-image.jpg`, so it must stay in the root folder.
+Replace the file (same name, same size) to change the card.
+
 ## Real contact details used
 
 Pulled from the live site's footer partial, not invented:
