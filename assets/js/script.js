@@ -253,8 +253,7 @@
     }
     Composite.add(engine.world, bodies);
     draw(true);
-    // a rebuild puts every piece back in the mark, so the hint resets too
-    hideTiltHint();
+    // a rebuild puts every piece back in the mark, so the hint comes back too
     if (hint) hint.style.opacity = '1';
   }
 
@@ -343,7 +342,6 @@
       };
     });
     for (var i = 0; i < isLoose.length; i++) isLoose[i] = false;
-    hideTiltHint();
     if (hint) hint.style.opacity = '1';
   }
 
@@ -404,7 +402,7 @@
     Composite.add(engine.world, c);
     drag = { i: i, constraint: c, pointerId: e.pointerId, el: el };
     pieceEl.classList.add('dragging');
-    if (hint && !tiltHintOn) hint.style.opacity = '0';
+    if (hint) hint.style.opacity = '0';
   }
 
   function onMove(e) {
@@ -459,7 +457,6 @@
   // and landscape, held upright or flat.
   var TILT_GAIN_X = 2.6;   // about 25 degrees of roll gives full sideways pull
   var TILT_DEAD_X = 0.07;  // ignore the first ~4 degrees so a hand at rest doesn't drift
-  var tiltSensor = false;  // the sensor has reported at least once
   var tiltActive = false;  // switched on by the first drop
   var tiltSX = null;       // latest left/right value from the sensor
   var gX = 0;              // smoothed sideways gravity actually applied
@@ -484,60 +481,12 @@
     // ...then its left/right part in the screen's axes, whichever way it's turned
     var a = screenAngle();
     tiltSX = a === 90 ? -dy : a === 270 ? dy : a === 180 ? -dx : dx;
-    if (!tiltSensor) {
-      tiltSensor = true;
-      if (tiltActive && hasDropped && !tiltDenied && !tiltHintOn && anyLoose()) showTiltHint();
-    }
-  }
-
-  // The hint line becomes a tilt tip once the logo has been pulled apart,
-  // and stays up while there are loose pieces to move. It only appears
-  // where tilt can work: touch devices with an orientation sensor, and
-  // not after an iPhone visitor declines motion access.
-  var coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  var maybeTilt = !reduceMotion && coarsePointer && typeof window.DeviceOrientationEvent !== 'undefined';
-  var tiltDenied = false;   // declined, or no sensor ever reported
-  var tiltHintOn = false;
-  var tiltCheck = null;
-
-  function anyLoose() {
-    for (var i = 0; i < isLoose.length; i++) if (isLoose[i]) return true;
-    return false;
-  }
-
-  function showTiltHint() {
-    if (!hint) return;
-    hint.classList.add('is-tilt');
-    hint.style.opacity = '1';
-    tiltHintOn = true;
-  }
-
-  function hideTiltHint() {
-    clearTimeout(tiltCheck);
-    if (!hint || !tiltHintOn) return;
-    hint.classList.remove('is-tilt');
-    hint.style.opacity = '0';
-    tiltHintOn = false;
-  }
-
-  // no reading a couple of seconds after it should have started: no sensor
-  function confirmSensorSoon() {
-    clearTimeout(tiltCheck);
-    tiltCheck = setTimeout(function () {
-      if (!tiltSensor) { tiltDenied = true; hideTiltHint(); }
-    }, 2500);
   }
 
   function activateTilt() {
     hasDropped = true;
     if (reduceMotion) return;
     tiltActive = true;
-    if (!maybeTilt || tiltDenied || tiltHintOn) return;
-    // Android etc.: the sensor reports from page load, so only promise tilt
-    // once it has (if it reports later, onOrientation shows the tip then).
-    // iPhone: show it now, alongside Apple's prompt asked on this same touch;
-    // it is withdrawn if the visitor declines.
-    if (needsPermission || tiltSensor) showTiltHint();
   }
 
   function stepTilt() {
@@ -565,14 +514,8 @@
         if (permissionAsked || !(hasDropped || drag)) return;
         permissionAsked = true;
         DeviceOrientationEvent.requestPermission().then(function (state) {
-          if (state === 'granted') {
-            window.addEventListener('deviceorientation', onOrientation);
-            confirmSensorSoon();
-          } else {
-            tiltDenied = true;
-            hideTiltHint();
-          }
-        }).catch(function () { tiltDenied = true; hideTiltHint(); });
+          if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
+        }).catch(function () {});
       }, { passive: true });
     } else {
       window.addEventListener('deviceorientation', onOrientation);

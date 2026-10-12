@@ -172,22 +172,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   color:var(--grey);
   transition:opacity .4s ease;
 }
-/* after the logo has been pulled apart (phones), the hint becomes a tilt tip */
-.hint-tilt{display:none}
-.rig-hint.is-tilt .hint-drag{display:none}
-.rig-hint.is-tilt .hint-tilt{
-  display:inline-flex;align-items:center;gap:8px;
-  color:var(--volt);
-  animation:hintIn .5s var(--ease) both;
-}
-.hint-tilt svg{
-  width:15px;height:15px;flex:none;
-  fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;
-  transform-origin:50% 85%;
-  animation:rock 1.6s ease-in-out infinite;
-}
-@keyframes hintIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-@keyframes rock{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
 .reset{
   display:inline-flex;align-items:center;gap:8px;flex:none;
   font-family:var(--font-display);
@@ -251,9 +235,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   }
   .hero > .wrap{width:100%}
   .hero-in{
-    grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);
+    grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
     gap:clamp(40px,5vw,88px);
   }
+  /* desktop only: a larger mark, filling its column up to 560px */
+  .stage{width:min(100%, 560px)}
+  .rig-top{max-width:560px}
 }
 
 /* ---- CTA band ---- */
