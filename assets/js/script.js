@@ -137,6 +137,13 @@
   var resetBtn = document.getElementById('resetBtn');
   var hint = document.getElementById('rigHint');
 
+  // "Drag the logo. Make it yours." hides the moment the visitor touches or
+  // clicks anywhere on the logo area (a piece or a gap between pieces), and
+  // only comes back with Reset. Driven by a class, so nothing else can
+  // quietly set it back.
+  function hideHint() { if (hint) hint.classList.add('is-hidden'); }
+  function showHint() { if (hint) hint.classList.remove('is-hidden'); }
+
   if (!hero || !stage || !pieceEls.length || !window.Matter) return;
 
   var M = window.Matter;
@@ -200,7 +207,7 @@
   }
 
   function keyOf(m) {
-    return [m.w, m.h, m.s, m.ox, m.oy].map(function (v) { return Math.round(v * 10); }).join('|');
+    return [m.w, m.h, m.s * 1000, m.ox, m.oy].map(function (v) { return Math.round(v); }).join('|');
   }
 
   function build() {
@@ -253,8 +260,6 @@
     }
     Composite.add(engine.world, bodies);
     draw(true);
-    // a rebuild puts every piece back in the mark, so the hint comes back too
-    if (hint) hint.style.opacity = '1';
   }
 
   // knock facet i out of the mark; anything resting on it follows
@@ -342,7 +347,7 @@
       };
     });
     for (var i = 0; i < isLoose.length; i++) isLoose[i] = false;
-    if (hint) hint.style.opacity = '1';
+    showHint();
   }
 
   function stepTweens(now) {
@@ -402,7 +407,7 @@
     Composite.add(engine.world, c);
     drag = { i: i, constraint: c, pointerId: e.pointerId, el: el };
     pieceEl.classList.add('dragging');
-    if (hint) hint.style.opacity = '0';
+    hideHint();
   }
 
   function onMove(e) {
@@ -446,6 +451,7 @@
   window.addEventListener('touchmove', function (e) {
     if (drag) e.preventDefault();
   }, { passive: false });
+  stage.addEventListener('pointerdown', hideHint, true);
   if (resetBtn) resetBtn.addEventListener('click', reset);
 
   // ---- tilt: on phones, tipping the device left or right steers loose facets ----

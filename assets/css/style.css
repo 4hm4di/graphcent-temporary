@@ -170,7 +170,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   letter-spacing:.12em;
   text-transform:uppercase;
   color:var(--grey);
-  transition:opacity .4s ease;
+  transition:opacity .4s ease, visibility 0s;
+}
+.rig-hint.is-hidden{
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .4s ease, visibility 0s .4s;
 }
 .reset{
   display:inline-flex;align-items:center;gap:8px;flex:none;
