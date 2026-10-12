@@ -35,7 +35,9 @@ thrown upward passes underneath it.
 
 Desktop: headline, intro and countdown on the left, the mark on the right,
 filling the first screen. Tablet and phone: one column, mark below the
-countdown. The headline is sized from its own column's width, so the
+countdown. The mark has one proportional size everywhere: about two thirds
+of the screen width on phones, settling at a medium 400px on tablets and
+desktops (`.stage` width in `style.css`). The headline is sized from its own column's width, so the
 longest typed phrase always stays on one line at every screen size.
 
 ### Looping typed headline
@@ -86,8 +88,12 @@ sides are the walls and its bottom edge is the floor.
   right sends the loose pieces sliding and tumbling to the low side, where
   they heap up like blocks in a tipped box. Pieces still in the logo stay
   put. Works in portrait and landscape; the first few degrees are ignored
-  so a resting hand doesn't make pieces drift. The hint briefly reads
-  "Now tilt your phone." when tilt switches on.
+  so a resting hand doesn't make pieces drift.
+  Once the logo has been pulled apart, the hint above it changes from
+  "Drag the logo. Make it yours." to a blue "Tilt your phone to move the
+  pieces." with a small rocking-phone icon, and stays up until Reset. It
+  only appears where tilt really works: phones whose sensor is reporting,
+  and on iPhone, as long as the visitor allows motion access.
   Android needs no permission. iPhones always show Apple's one-time
   "motion & orientation" prompt before any website can read tilt; it is
   asked automatically the moment the first piece is dropped (never on page
