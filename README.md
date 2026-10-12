@@ -82,25 +82,17 @@ sides are the walls and its bottom edge is the floor.
 - The world rebuilds itself whenever the layout changes (rotation, window
   resize, fonts loading), so the floor always matches the section.
 - **Tilt (phones).** Switches on by itself the first time a piece is
-  dropped; there is no button. From then on the phone steers gravity for
-  the loose pieces on both axes:
-  - roll left / right: pieces slide and tumble to the low side;
-  - tip forward / back: measured from however the visitor is holding the
-    phone when tilt switches on (and again after Reset). Tip the top away
-    and the pieces lighten, lift and gather at the top of the logo area;
-    tip it back and they fall to the floor again.
-  Pieces still in the logo stay put. The first few degrees of roll are
-  ignored so a resting hand doesn't make pieces drift. Works in portrait
-  and landscape. The hint briefly reads "Now tilt your phone." when tilt
-  switches on.
+  dropped; there is no button. From then on, tipping the phone left or
+  right sends the loose pieces sliding and tumbling to the low side, where
+  they heap up like blocks in a tipped box. Pieces still in the logo stay
+  put. Works in portrait and landscape; the first few degrees are ignored
+  so a resting hand doesn't make pieces drift. The hint briefly reads
+  "Now tilt your phone." when tilt switches on.
   Android needs no permission. iPhones always show Apple's one-time
   "motion & orientation" prompt before any website can read tilt; it is
-  asked automatically the moment the first piece is dropped (never on
-  page load or an ordinary scroll). If the visitor declines, everything
-  else works as before. The sensor only works over HTTPS.
-- The physics ceiling is the top of the logo area, just under the Reset
-  row, so lifted or thrown pieces always stay in view and never go behind
-  the sticky header or over the headline.
+  asked automatically the moment the first piece is dropped (never on page
+  load or an ordinary scroll). If the visitor declines, everything else
+  works as before. The sensor only works over HTTPS.
 - With reduced motion turned on there is no gravity: you can still move
   pieces, but nothing falls or collapses.
 

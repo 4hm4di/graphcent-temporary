@@ -180,7 +180,6 @@
   var walls = [];
   var layoutKey = '';
   var drag = null;     // { i, constraint, pointerId, el }
-  var ceilingY = 0;    // hero-local y of the physics ceiling
   var tweens = null;   // reset animation in progress
   var lastDrawn = [];
 
@@ -207,7 +206,6 @@
   function build() {
     var m = measure();
     layoutKey = keyOf(m);
-    ceilingY = m.oy; // the top of the logo area, just under the Reset row
 
     if (drag) endDrag();
     tweens = null;
@@ -219,10 +217,7 @@
     var wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1 };
     walls = [
       Bodies.rectangle(m.w / 2, m.h + T / 2, m.w + T * 2, T, wallOpts),       // floor
-      // ceiling at the top of the logo area (not the top of the section), so
-      // a piece floated up by tilt or thrown high stays where the visitor is
-      // looking, never behind the sticky header or over the headline
-      Bodies.rectangle(m.w / 2, m.oy - T / 2, m.w + T * 2, T, wallOpts),      // ceiling
+      Bodies.rectangle(m.w / 2, -T / 2, m.w + T * 2, T, wallOpts),            // ceiling
       Bodies.rectangle(-T / 2, m.h / 2, T, m.h + T * 2, wallOpts),            // left
       Bodies.rectangle(m.w + T / 2, m.h / 2, T, m.h + T * 2, wallOpts)        // right
     ];
@@ -345,7 +340,6 @@
       };
     });
     for (var i = 0; i < isLoose.length; i++) isLoose[i] = false;
-    pitch0 = null; // take the current holding angle as the new "level"
     clearTimeout(hintTimer);
     if (hint) {
       hint.textContent = 'Drag the logo. Make it yours.';
@@ -382,7 +376,7 @@
     var hr = hero.getBoundingClientRect();
     return {
       x: Math.max(4, Math.min(hr.width - 4, e.clientX - hr.left)),
-      y: Math.max(ceilingY + 4, Math.min(hr.height - 4, e.clientY - hr.top))
+      y: Math.max(4, Math.min(hr.height - 4, e.clientY - hr.top))
     };
   }
 
@@ -456,25 +450,20 @@
   }, { passive: false });
   if (resetBtn) resetBtn.addEventListener('click', reset);
 
-  // ---- tilt: on phones, tipping the device steers the loose facets ----
-  // Switches on by itself the first time a facet is dropped. From then on
-  // the phone's orientation sensor steers gravity on both axes:
-  //   left / right: roll the phone and loose facets slide and tumble to the
-  //                 low side;
-  //   top / bottom: measured from however the visitor is holding the phone
-  //                 when tilt switches on. Tip the top away and the facets
-  //                 lighten, lift and drift to the top of the section; tip
-  //                 it back and they fall again.
-  // Facets still in the mark are pinned, so tilt only moves loose ones.
+  // ---- tilt: on phones, tipping the device left or right steers loose facets ----
+  // Switches on by itself the first time a facet is dropped (no button).
+  // From then on the orientation sensor tells us which way is "down"
+  // relative to the screen; its left/right part becomes sideways gravity,
+  // so loose facets slide, roll and pile up on the low side. Facets still in
+  // the mark are pinned, so tilt only moves loose ones. Works in portrait
+  // and landscape, held upright or flat.
   var TILT_GAIN_X = 2.6;   // about 25 degrees of roll gives full sideways pull
-  var TILT_DEAD_X = 0.07;  // ignore the first ~4 degrees of roll so a hand at rest doesn't drift
-  var TILT_SPAN_Y = 18;    // degrees of forward tip that take gravity from normal to weightless
-  var tiltSensor = false;  // a real sensor reading has arrived
+  var TILT_DEAD_X = 0.07;  // ignore the first ~4 degrees so a hand at rest doesn't drift
+  var tiltSensor = false;  // the sensor has reported at least once
   var tiltActive = false;  // switched on by the first drop
-  var reading = null;      // latest { sx, pitch } from the sensor
-  var pitch0 = null;       // the visitor's natural holding angle
-  var gX = 0, gY = 1;      // smoothed gravity actually applied
-  var lastWakeX = 0, lastWakeY = 1;
+  var tiltSX = null;       // latest left/right value from the sensor
+  var gX = 0;              // smoothed sideways gravity actually applied
+  var lastWakeX = 0;
   var permissionAsked = false;
   var hasDropped = false;
   var needsPermission = typeof window.DeviceOrientationEvent !== 'undefined' &&
@@ -489,19 +478,12 @@
   function onOrientation(e) {
     if (e.beta == null || e.gamma == null) return;
     var b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180;
-    // world "down" in the device's own axes (x right, y up, z out of the screen)
+    // world "down" in the device's own axes (x right, y up, portrait)
     var dx = Math.sin(g) * Math.cos(b);
     var dy = -Math.sin(b);
-    var dz = -Math.cos(g) * Math.cos(b);
-    // ...re-expressed in the screen's axes, whichever way the screen is turned
-    var a = screenAngle(), sx, sy;
-    if (a === 90) { sx = -dy; sy = -dx; }
-    else if (a === 270) { sx = dy; sy = dx; }
-    else if (a === 180) { sx = -dx; sy = dy; }
-    else { sx = dx; sy = -dy; }
-    // forward/back tip: 0 = lying flat, 90 = upright, continuous past upright
-    var pitch = Math.atan2(sy, -dz) * 180 / Math.PI;
-    reading = { sx: sx, pitch: pitch };
+    // ...then its left/right part in the screen's axes, whichever way it's turned
+    var a = screenAngle();
+    tiltSX = a === 90 ? -dy : a === 270 ? dy : a === 180 ? -dx : dx;
     if (!tiltSensor) {
       tiltSensor = true;
       if (tiltActive) announceTilt();
@@ -521,27 +503,19 @@
     hasDropped = true;
     if (tiltActive || reduceMotion) return;
     tiltActive = true;
-    pitch0 = null;
     if (tiltSensor) announceTilt();
   }
 
   function stepTilt() {
-    if (!tiltActive || !reading) return;
-    if (pitch0 === null) pitch0 = reading.pitch;
-    var sx = reading.sx;
+    if (!tiltActive || tiltSX === null) return;
+    var sx = tiltSX;
     sx = Math.abs(sx) < TILT_DEAD_X ? 0 : sx - (sx > 0 ? TILT_DEAD_X : -TILT_DEAD_X);
-    var dp = reading.pitch - pitch0;
-    if (dp > 180) dp -= 360;
-    if (dp < -180) dp += 360;
     var tx = Math.max(-1.5, Math.min(1.5, sx * TILT_GAIN_X));
-    var ty = Math.max(-1.2, Math.min(1.35, 1 + dp / TILT_SPAN_Y));
     gX += (tx - gX) * 0.15;
-    gY += (ty - gY) * 0.15;
     engine.gravity.x = gX;
-    engine.gravity.y = gY;
-    // resting facets fall asleep; wake the loose ones whenever "down" changes
-    if (Math.abs(gX - lastWakeX) > 0.04 || Math.abs(gY - lastWakeY) > 0.04) {
-      lastWakeX = gX; lastWakeY = gY;
+    // resting facets fall asleep; wake the loose ones whenever "down" shifts
+    if (Math.abs(gX - lastWakeX) > 0.04) {
+      lastWakeX = gX;
       for (var w = 0; w < bodies.length; w++) {
         if (!bodies[w].isStatic) Sleeping.set(bodies[w], false);
       }
