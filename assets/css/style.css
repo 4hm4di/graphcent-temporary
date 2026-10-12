@@ -1,0 +1,297 @@
+/* ============================================================
+   Graphcent — Temporary brand experience
+   Tokens sampled from the full Graphcent site, kept as a single
+   source of truth so this page feels like the same studio.
+   ============================================================ */
+
+:root{
+  --ink:#0A0B35;
+  --paper:#F3F2EE;
+  --grey:#6B6B84;
+  --volt:#0047E2;
+  --sky:#00CCFF;
+  --line:rgba(10,11,53,.14);
+
+  --font-display:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --font-body:"Inter Tight",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+
+  --pad:clamp(20px,4.6vw,76px);
+  --maxw:1320px;
+  --ease:cubic-bezier(.22,.9,.28,1);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-weight:400;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:clip; /* clip, not hidden: hidden can break the sticky header */
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+
+.skip{position:absolute;left:-9999px;top:auto}
+.skip:focus{
+  left:var(--pad);top:14px;z-index:999;
+  background:var(--ink);color:var(--paper);padding:10px 16px;
+  font-family:var(--font-display);font-size:.8rem;letter-spacing:.04em;
+}
+
+/* ---- top bar ---- */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:50; /* above the mark's pieces, even mid-throw */
+  background:var(--paper);
+  border-bottom:1px solid transparent;
+  padding-block:clamp(16px,2.4vw,26px);
+  transition:border-color .3s var(--ease);
+}
+.topbar.is-stuck{border-bottom-color:var(--line)}
+.topbar-in{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.word img{height:clamp(20px,2.4vw,26px);width:auto}
+.soon{
+  font-family:var(--font-display);
+  font-size:clamp(.62rem,.9vw,.74rem);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--grey);
+  white-space:nowrap;
+}
+
+/* ---- hero ----
+   The hero is also the physics world for the mark: its edges are the
+   walls and its bottom edge is the floor pieces collapse onto. It clips
+   so a thrown piece can never cause horizontal scroll. */
+.hero{
+  position:relative;
+  overflow:hidden;
+  overflow:clip;
+  padding-block:clamp(8px,2.4vw,24px) clamp(56px,9vw,120px);
+}
+.hero-in{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:clamp(40px,7vw,64px);
+  align-items:center;
+}
+
+.hero-copy{container-type:inline-size;min-width:0}
+.headline{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:800;
+  /* sized from the column's own width so the longest typed phrase always
+     fits on one line, at every screen size */
+  font-size:clamp(2rem,10.4cqi,5.6rem);
+  line-height:.98;
+  letter-spacing:-.01em;
+  text-transform:uppercase;
+}
+.hl-line{display:block;white-space:nowrap}
+.hl-type{min-height:.98em}
+.hl-caret{
+  display:inline-block;
+  width:.09em;
+  height:.78em;
+  margin-left:.06em;
+  vertical-align:baseline;
+  transform:translateY(.02em);
+  background:var(--volt);
+  animation:caret 1s steps(1) infinite;
+}
+@keyframes caret{50%{opacity:0}}
+
+.sub{
+  margin:clamp(16px,2vw,22px) 0 0;
+  max-width:44ch;
+  font-size:clamp(1rem,1.2vw,1.15rem);
+  color:var(--grey);
+}
+
+.vh{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+
+/* ---- countdown ---- */
+.countdown{margin-top:clamp(28px,4vw,44px)}
+.cd-label-top{
+  margin:0 0 12px;
+  font-family:var(--font-display);
+  font-size:clamp(.66rem,.9vw,.76rem);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--grey);
+}
+.cd-units{display:flex;gap:clamp(8px,1.4vw,14px)}
+.cd-unit{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-width:clamp(54px,6vw,66px);
+  padding:clamp(10px,1.3vw,14px) 4px;
+  border:1px solid var(--line);
+  background:var(--paper);
+}
+.cd-num{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:clamp(1.3rem,2.3vw,1.8rem);
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink);
+}
+.cd-unit-label{
+  font-family:var(--font-display);
+  font-size:clamp(.58rem,.74vw,.66rem);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--grey);
+}
+
+/* ---- interactive rig ---- */
+.rig{width:100%;min-width:0}
+.rig-top{
+  position:relative;
+  z-index:30; /* stays clickable even when a piece is thrown over it */
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  max-width:540px;
+  margin:0 auto 18px;
+}
+.rig-hint{
+  font-family:var(--font-display);
+  font-size:clamp(.66rem,.9vw,.76rem);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--grey);
+  transition:opacity .4s ease;
+}
+.reset{
+  display:inline-flex;align-items:center;gap:8px;flex:none;
+  font-family:var(--font-display);
+  font-size:clamp(.66rem,.85vw,.74rem);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--paper);
+  padding:9px 14px;
+  border:1px solid var(--line);
+  transition:border-color .28s var(--ease),color .28s var(--ease),background .28s var(--ease);
+}
+.reset svg{width:14px;height:14px;fill:currentColor;flex:none}
+.reset:hover,.reset:focus-visible{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.reset:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+
+.stage{
+  position:relative;
+  width:100%;
+  max-width:540px;
+  margin:0 auto;
+  aspect-ratio:496.73/445.17;
+}
+.pieces{position:absolute;inset:0}
+
+.piece{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none; /* only the filled polygon catches the pointer */
+  will-change:transform;
+}
+.piece polygon{
+  pointer-events:auto;
+  touch-action:none;
+  cursor:grab;
+  transition:filter .2s var(--ease);
+}
+.piece.dragging{z-index:20;filter:drop-shadow(0 12px 18px rgba(10,11,53,.22))}
+.piece.dragging polygon{cursor:grabbing}
+.piece:not(.dragging) polygon:hover{filter:brightness(1.08)}
+
+@media (prefers-reduced-motion:reduce){
+  .hl-caret{animation:none}
+}
+
+/* ---- desktop: text left, mark right, hero fills the screen ---- */
+@media (min-width:960px){
+  .hero{
+    min-height:calc(100svh - 90px);
+    display:flex;
+    align-items:center;
+  }
+  .hero > .wrap{width:100%}
+  .hero-in{
+    grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);
+    gap:clamp(40px,5vw,88px);
+  }
+}
+
+/* ---- CTA band ---- */
+.cta{border-top:1px solid var(--line);padding-block:clamp(32px,5vw,56px)}
+.cta-in{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;
+}
+.cta-h{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:clamp(1.3rem,2.6vw,1.9rem);
+  line-height:1.15;
+  text-transform:uppercase;
+}
+.cta .btn{
+  flex:none;
+  display:inline-flex;align-items:center;
+  padding:14px 22px;
+  border:1px solid var(--ink);
+  font-family:var(--font-display);
+  font-size:clamp(.78rem,1vw,.9rem);
+  letter-spacing:.02em;
+  transition:background .28s var(--ease),color .28s var(--ease);
+}
+.cta .btn:hover,.cta .btn:focus-visible{background:var(--ink);color:var(--paper)}
+.cta .btn:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+
+/* ---- footer ---- */
+.fbar{border-top:1px solid var(--line);padding-block:clamp(24px,4vw,40px)}
+.fbar-in{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+  gap:16px 28px;
+}
+.fbar-name{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:.95rem;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+}
+.fbar-sub{margin:4px 0 0;font-size:.85rem;color:var(--grey)}
+.fbar-links{display:flex;gap:22px;flex-wrap:wrap}
+.fbar-links a{
+  font-size:.85rem;
+  border-bottom:1px solid transparent;
+  transition:border-color .2s var(--ease),color .2s var(--ease);
+}
+.fbar-links a:hover,.fbar-links a:focus-visible{border-color:var(--ink)}
+.fbar-copy{margin:0;font-size:.78rem;color:var(--grey);width:100%}
+
+@media (min-width:640px){
+  .fbar-copy{width:auto;margin-left:auto}
+}
+
+/* ---- small screens ---- */
+@media (max-width:640px){
+  .reset{padding:8px 11px}
+}
+@media (max-width:420px){
+  .rs-long{display:none}
+}
