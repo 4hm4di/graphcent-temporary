@@ -180,6 +180,7 @@
   var walls = [];
   var layoutKey = '';
   var drag = null;     // { i, constraint, pointerId, el }
+  var ceilingY = 0;    // hero-local y of the physics ceiling
   var tweens = null;   // reset animation in progress
   var lastDrawn = [];
 
@@ -206,6 +207,7 @@
   function build() {
     var m = measure();
     layoutKey = keyOf(m);
+    ceilingY = m.oy; // the top of the logo area, just under the Reset row
 
     if (drag) endDrag();
     tweens = null;
@@ -217,7 +219,10 @@
     var wallOpts = { isStatic: true, friction: 0.6, restitution: 0.1 };
     walls = [
       Bodies.rectangle(m.w / 2, m.h + T / 2, m.w + T * 2, T, wallOpts),       // floor
-      Bodies.rectangle(m.w / 2, -T / 2, m.w + T * 2, T, wallOpts),            // ceiling
+      // ceiling at the top of the logo area (not the top of the section), so
+      // a piece floated up by tilt or thrown high stays where the visitor is
+      // looking, never behind the sticky header or over the headline
+      Bodies.rectangle(m.w / 2, m.oy - T / 2, m.w + T * 2, T, wallOpts),      // ceiling
       Bodies.rectangle(-T / 2, m.h / 2, T, m.h + T * 2, wallOpts),            // left
       Bodies.rectangle(m.w + T / 2, m.h / 2, T, m.h + T * 2, wallOpts)        // right
     ];
@@ -340,7 +345,12 @@
       };
     });
     for (var i = 0; i < isLoose.length; i++) isLoose[i] = false;
-    if (hint) hint.style.opacity = '1';
+    pitch0 = null; // take the current holding angle as the new "level"
+    clearTimeout(hintTimer);
+    if (hint) {
+      hint.textContent = 'Drag the logo. Make it yours.';
+      hint.style.opacity = '1';
+    }
   }
 
   function stepTweens(now) {
@@ -372,7 +382,7 @@
     var hr = hero.getBoundingClientRect();
     return {
       x: Math.max(4, Math.min(hr.width - 4, e.clientX - hr.left)),
-      y: Math.max(4, Math.min(hr.height - 4, e.clientY - hr.top))
+      y: Math.max(ceilingY + 4, Math.min(hr.height - 4, e.clientY - hr.top))
     };
   }
 
@@ -420,6 +430,7 @@
   function onUp(e) {
     if (!drag || e.pointerId !== drag.pointerId) return;
     endDrag();
+    activateTilt();
   }
 
   pieceEls.forEach(function (el) {
@@ -445,18 +456,29 @@
   }, { passive: false });
   if (resetBtn) resetBtn.addEventListener('click', reset);
 
-  // ---- tilt: on phones, tipping the device sends loose facets that way ----
-  // The orientation sensor tells us which way is "down" relative to the
-  // screen; its left/right part becomes sideways gravity. Facets still in
-  // the mark are pinned, so only loose ones slide, roll and pile up on the
-  // low side. Works in portrait and landscape, held upright or flat.
-  var tiltBtn = document.getElementById('tiltBtn');
-  var tiltTarget = 0;    // desired sideways gravity
-  var tiltX = 0;         // smoothed value actually applied
-  var tiltOn = false;
-  var lastWakeTilt = 0;
-  var TILT_GAIN = 2.6;   // about 25 degrees gives full sideways pull
-  var TILT_DEAD = 0.07;  // ignore the first ~4 degrees so a resting hand doesn't drift
+  // ---- tilt: on phones, tipping the device steers the loose facets ----
+  // Switches on by itself the first time a facet is dropped. From then on
+  // the phone's orientation sensor steers gravity on both axes:
+  //   left / right: roll the phone and loose facets slide and tumble to the
+  //                 low side;
+  //   top / bottom: measured from however the visitor is holding the phone
+  //                 when tilt switches on. Tip the top away and the facets
+  //                 lighten, lift and drift to the top of the section; tip
+  //                 it back and they fall again.
+  // Facets still in the mark are pinned, so tilt only moves loose ones.
+  var TILT_GAIN_X = 2.6;   // about 25 degrees of roll gives full sideways pull
+  var TILT_DEAD_X = 0.07;  // ignore the first ~4 degrees of roll so a hand at rest doesn't drift
+  var TILT_SPAN_Y = 18;    // degrees of forward tip that take gravity from normal to weightless
+  var tiltSensor = false;  // a real sensor reading has arrived
+  var tiltActive = false;  // switched on by the first drop
+  var reading = null;      // latest { sx, pitch } from the sensor
+  var pitch0 = null;       // the visitor's natural holding angle
+  var gX = 0, gY = 1;      // smoothed gravity actually applied
+  var lastWakeX = 0, lastWakeY = 1;
+  var permissionAsked = false;
+  var hasDropped = false;
+  var needsPermission = typeof window.DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission === 'function';
 
   function screenAngle() {
     var a = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle
@@ -467,37 +489,77 @@
   function onOrientation(e) {
     if (e.beta == null || e.gamma == null) return;
     var b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180;
-    // world "down" in the device's own axes (x right, y up, portrait)
+    // world "down" in the device's own axes (x right, y up, z out of the screen)
     var dx = Math.sin(g) * Math.cos(b);
     var dy = -Math.sin(b);
-    // ...then in the screen's axes, whichever way the screen is turned
-    var a = screenAngle(), sx;
-    if (a === 90) sx = -dy;
-    else if (a === 270) sx = dy;
-    else if (a === 180) sx = -dx;
-    else sx = dx;
-    sx = Math.abs(sx) < TILT_DEAD ? 0 : sx - (sx > 0 ? TILT_DEAD : -TILT_DEAD);
-    tiltTarget = Math.max(-1.5, Math.min(1.5, sx * TILT_GAIN));
-    if (!tiltOn) {
-      tiltOn = true;
-      if (hint) hint.textContent = 'Drag the logo. Tilt your phone.';
+    var dz = -Math.cos(g) * Math.cos(b);
+    // ...re-expressed in the screen's axes, whichever way the screen is turned
+    var a = screenAngle(), sx, sy;
+    if (a === 90) { sx = -dy; sy = -dx; }
+    else if (a === 270) { sx = dy; sy = dx; }
+    else if (a === 180) { sx = -dx; sy = dy; }
+    else { sx = dx; sy = -dy; }
+    // forward/back tip: 0 = lying flat, 90 = upright, continuous past upright
+    var pitch = Math.atan2(sy, -dz) * 180 / Math.PI;
+    reading = { sx: sx, pitch: pitch };
+    if (!tiltSensor) {
+      tiltSensor = true;
+      if (tiltActive) announceTilt();
     }
   }
 
-  if (!reduceMotion && 'DeviceOrientationEvent' in window) {
-    var needsPermission = typeof DeviceOrientationEvent.requestPermission === 'function';
-    var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (needsPermission) {
-      // iOS only lets a page read tilt after the visitor taps to allow it
-      if (coarse && tiltBtn) {
-        tiltBtn.hidden = false;
-        tiltBtn.addEventListener('click', function () {
-          DeviceOrientationEvent.requestPermission().then(function (state) {
-            if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
-            tiltBtn.hidden = true;
-          }).catch(function () { tiltBtn.hidden = true; });
-        });
+  var hintTimer = null;
+  function announceTilt() {
+    if (!hint) return;
+    hint.textContent = 'Now tilt your phone.';
+    hint.style.opacity = '1';
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () { if (hint) hint.style.opacity = '0'; }, 3800);
+  }
+
+  function activateTilt() {
+    hasDropped = true;
+    if (tiltActive || reduceMotion) return;
+    tiltActive = true;
+    pitch0 = null;
+    if (tiltSensor) announceTilt();
+  }
+
+  function stepTilt() {
+    if (!tiltActive || !reading) return;
+    if (pitch0 === null) pitch0 = reading.pitch;
+    var sx = reading.sx;
+    sx = Math.abs(sx) < TILT_DEAD_X ? 0 : sx - (sx > 0 ? TILT_DEAD_X : -TILT_DEAD_X);
+    var dp = reading.pitch - pitch0;
+    if (dp > 180) dp -= 360;
+    if (dp < -180) dp += 360;
+    var tx = Math.max(-1.5, Math.min(1.5, sx * TILT_GAIN_X));
+    var ty = Math.max(-1.2, Math.min(1.35, 1 + dp / TILT_SPAN_Y));
+    gX += (tx - gX) * 0.15;
+    gY += (ty - gY) * 0.15;
+    engine.gravity.x = gX;
+    engine.gravity.y = gY;
+    // resting facets fall asleep; wake the loose ones whenever "down" changes
+    if (Math.abs(gX - lastWakeX) > 0.04 || Math.abs(gY - lastWakeY) > 0.04) {
+      lastWakeX = gX; lastWakeY = gY;
+      for (var w = 0; w < bodies.length; w++) {
+        if (!bodies[w].isStatic) Sleeping.set(bodies[w], false);
       }
+    }
+  }
+
+  if (!reduceMotion && typeof window.DeviceOrientationEvent !== 'undefined') {
+    if (needsPermission) {
+      // iOS only lets a page read tilt after the visitor allows it, and the
+      // request has to come from a touch. We ask the moment the first facet
+      // is dropped, so tilt arrives exactly when it becomes useful.
+      window.addEventListener('touchend', function () {
+        if (permissionAsked || !(hasDropped || drag)) return;
+        permissionAsked = true;
+        DeviceOrientationEvent.requestPermission().then(function (state) {
+          if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
+        }).catch(function () {});
+      }, { passive: true });
     } else {
       window.addEventListener('deviceorientation', onOrientation);
     }
@@ -532,16 +594,7 @@
     var dt = Math.min(now - last, 100);
     last = now;
 
-    if (tiltOn) {
-      tiltX += (tiltTarget - tiltX) * 0.15;
-      engine.gravity.x = tiltX;
-      if (Math.abs(tiltX - lastWakeTilt) > 0.04) {
-        lastWakeTilt = tiltX;
-        for (var w = 0; w < bodies.length; w++) {
-          if (!bodies[w].isStatic) Sleeping.set(bodies[w], false);
-        }
-      }
-    }
+    stepTilt();
 
     if (tweens) {
       stepTweens(now);
