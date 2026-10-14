@@ -17,11 +17,16 @@
 
   --pad:clamp(20px,4.6vw,76px);
   --maxw:1320px;
-  --ease:cubic-bezier(.22,.9,.28,1);
+  --ease:cubic-bezier(.22,.9,.28,1);  /* strong ease-out */
+  --t-press:.16s;
 }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* no grey tap flash: every control answers the finger itself (see :active) */
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+/* no 300ms double-tap wait on anything tappable */
+a,button{touch-action:manipulation}
 body{
   background:var(--paper);
   color:var(--ink);
@@ -35,7 +40,11 @@ img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
-.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad);
+  /* viewport-fit=cover lets the page run under the notch in landscape;
+     the text keeps clear of it */
+  padding-left:max(var(--pad),env(safe-area-inset-left,0px));
+  padding-right:max(var(--pad),env(safe-area-inset-right,0px))}
 
 .skip{position:absolute;left:-9999px;top:auto}
 .skip:focus{
@@ -187,12 +196,18 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   background:var(--paper);
   padding:9px 14px;
   border:1px solid var(--line);
-  transition:border-color .28s var(--ease),color .28s var(--ease),background .28s var(--ease);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  transition:border-color .2s ease,color .2s ease,background .2s ease,
+             transform var(--t-press) var(--ease);
 }
+.reset:active{transform:scale(.97)}
 .reset svg{width:14px;height:14px;fill:currentColor;flex:none}
 .rig-actions{display:flex;gap:8px;flex:none}
 
-.reset:hover,.reset:focus-visible{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.reset:focus-visible{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+@media (hover:hover) and (pointer:fine){
+  .reset:hover{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+}
 .reset:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
 
 /* One proportional size for the mark on every screen: about two thirds of
@@ -225,10 +240,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 .piece.dragging{z-index:20;filter:drop-shadow(0 12px 18px rgba(10,11,53,.22))}
 .piece.dragging polygon{cursor:grabbing}
-.piece:not(.dragging) polygon:hover{filter:brightness(1.08)}
+@media (hover:hover) and (pointer:fine){
+  .piece:not(.dragging) polygon:hover{filter:brightness(1.08)}
+}
 
 @media (prefers-reduced-motion:reduce){
   .hl-caret{animation:none}
+  .reset:active,.cta .btn:active{transform:none}
 }
 
 /* ---- desktop: text left, mark right, hero fills the screen ---- */
@@ -269,9 +287,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   font-family:var(--font-display);
   font-size:clamp(.78rem,1vw,.9rem);
   letter-spacing:.02em;
-  transition:background .28s var(--ease),color .28s var(--ease);
+  -webkit-user-select:none;user-select:none;
+  transition:background .2s ease,color .2s ease,transform var(--t-press) var(--ease);
 }
-.cta .btn:hover,.cta .btn:focus-visible{background:var(--ink);color:var(--paper)}
+.cta .btn:active{transform:scale(.97)}
+.cta .btn:focus-visible{background:var(--ink);color:var(--paper)}
+@media (hover:hover) and (pointer:fine){
+  .cta .btn:hover{background:var(--ink);color:var(--paper)}
+}
 .cta .btn:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
 
 /* ---- footer ---- */
@@ -295,7 +318,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   border-bottom:1px solid transparent;
   transition:border-color .2s var(--ease),color .2s var(--ease);
 }
-.fbar-links a:hover,.fbar-links a:focus-visible{border-color:var(--ink)}
+.fbar-links a:focus-visible{border-color:var(--ink)}
+@media (hover:hover) and (pointer:fine){
+  .fbar-links a:hover{border-color:var(--ink)}
+}
 .fbar-copy{margin:0;font-size:.78rem;color:var(--grey);width:100%}
 
 @media (min-width:640px){

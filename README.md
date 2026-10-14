@@ -144,3 +144,11 @@ the main website project's source and config are completely untouched.
 
 When the full site is ready, repoint the domain to that deployment and
 this temporary project can be retired.
+
+## Feel pass (October 2026)
+- Hover styles only apply on devices with a real mouse, so the Reset
+  button no longer stays dark after a tap on a phone.
+- Reset and the email button press down slightly (`scale(.97)`) on touch.
+- No grey tap flash or double-tap delay; long-press doesn't select labels.
+- Text keeps clear of the notch in landscape (the page already used
+  `viewport-fit=cover` but had no safe-area padding).
